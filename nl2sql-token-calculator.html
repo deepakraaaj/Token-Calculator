@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NL2SQL Token Calculator</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --ink: #1b1f27;
+    --muted: #5f6876;
+    --line: #d9dde5;
+    --blue: #245ca8;
+    --shadow: 0 10px 28px rgba(25, 31, 42, 0.08);
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.5;
+    padding: 14px 20px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    width: min(1180px, 100%);
+    margin: 0 auto;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  h1, h2 {
+    margin: 0 0 12px;
+    font-size: 23px;
+    line-height: 1.2;
+    letter-spacing: 0;
+  }
+  p { margin: 0 0 14px; }
+  .note {
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  label {
+    display: grid;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  input {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 9px;
+    color: var(--ink);
+    background: #fff;
+    font: inherit;
+  }
+  input:focus {
+    outline: 2px solid rgba(36, 92, 168, 0.22);
+    border-color: var(--blue);
+  }
+  .metric {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+  }
+  .metric:first-of-type { border-top: 0; }
+  .label { color: var(--muted); }
+  .value {
+    font-family: var(--mono);
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+  }
+  @media (max-width: 850px) {
+    body { padding: 12px; }
+    .grid, .controls { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <main class="grid">
+    <section class="card">
+      <h1>Editable Calculator</h1>
+      <p class="note">Default calculator uses a mixed daily pattern: 12 read, 5 update, 2 create, 1 delete per user.</p>
+      <div class="controls">
+        <label>Users
+          <input id="users" type="number" value="1" min="1">
+        </label>
+        <label>Read requests / user / day
+          <input id="readCount" type="number" value="12" min="0">
+        </label>
+        <label>Update CRUD / user / day
+          <input id="updateCount" type="number" value="5" min="0">
+        </label>
+        <label>Create CRUD / user / day
+          <input id="createCount" type="number" value="2" min="0">
+        </label>
+        <label>Delete requests / user / day
+          <input id="deleteCount" type="number" value="1" min="0">
+        </label>
+        <label>Buffer %
+          <input id="buffer" type="number" value="25" min="0">
+        </label>
+        <label>Gemini input $ / 1M
+          <input id="geminiIn" type="number" value="0.75" min="0" step="0.01">
+        </label>
+        <label>Gemini output $ / 1M
+          <input id="geminiOut" type="number" value="3.75" min="0" step="0.01">
+        </label>
+        <label>Claude input $ / 1M
+          <input id="claudeIn" type="number" value="2" min="0" step="0.01">
+        </label>
+        <label>Claude output $ / 1M
+          <input id="claudeOut" type="number" value="10" min="0" step="0.01">
+        </label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Calculator Output</h2>
+      <p class="note">This is the selected mixed usecase. Change the daily counts on the left to model another user pattern.</p>
+      <div class="metric"><span class="label">Input tokens / day</span><span class="value" id="calcInputDay"></span></div>
+      <div class="metric"><span class="label">Output tokens / day</span><span class="value" id="calcOutputDay"></span></div>
+      <div class="metric"><span class="label">Total tokens / day</span><span class="value" id="calcDay"></span></div>
+      <div class="metric"><span class="label">Total tokens / week</span><span class="value" id="calcWeek"></span></div>
+      <div class="metric"><span class="label">Total tokens / month</span><span class="value" id="calcMonth"></span></div>
+      <div class="metric"><span class="label">Monthly planning budget</span><span class="value" id="calcMonthBuffered"></span></div>
+      <div class="metric"><span class="label">Gemini monthly cost</span><span class="value" id="geminiCost"></span></div>
+      <div class="metric"><span class="label">Claude monthly cost</span><span class="value" id="claudeCost"></span></div>
+    </section>
+  </main>
+
+<script>
+  const operations = [
+    { name: "Read / SELECT", input: 850, output: 150, inputId: "readCount" },
+    { name: "Update CRUD", input: 3000, output: 200, inputId: "updateCount" },
+    { name: "Create CRUD", input: 4400, output: 300, inputId: "createCount" },
+    { name: "Delete", input: 2000, output: 200, inputId: "deleteCount" }
+  ];
+  const fmt = new Intl.NumberFormat("en-US");
+  const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+
+  function val(id) {
+    return Number(document.getElementById(id).value || 0);
+  }
+
+  function recalc() {
+    const users = val("users");
+    const buffer = val("buffer") / 100;
+    const inputDay = users * operations.reduce((sum, item) => sum + val(item.inputId) * item.input, 0);
+    const outputDay = users * operations.reduce((sum, item) => sum + val(item.inputId) * item.output, 0);
+    const totalDay = inputDay + outputDay;
+    const inputMonth = inputDay * 30;
+    const outputMonth = outputDay * 30;
+    const month = totalDay * 30;
+    const monthBuffered = month * (1 + buffer);
+    const gemini = ((inputMonth * val("geminiIn")) + (outputMonth * val("geminiOut"))) / 1000000 * (1 + buffer);
+    const claude = ((inputMonth * val("claudeIn")) + (outputMonth * val("claudeOut"))) / 1000000 * (1 + buffer);
+
+    document.getElementById("calcInputDay").textContent = fmt.format(inputDay);
+    document.getElementById("calcOutputDay").textContent = fmt.format(outputDay);
+    document.getElementById("calcDay").textContent = fmt.format(totalDay);
+    document.getElementById("calcWeek").textContent = fmt.format(totalDay * 7);
+    document.getElementById("calcMonth").textContent = fmt.format(month);
+    document.getElementById("calcMonthBuffered").textContent = fmt.format(monthBuffered);
+    document.getElementById("geminiCost").textContent = money.format(gemini);
+    document.getElementById("claudeCost").textContent = money.format(claude);
+  }
+
+  document.querySelectorAll("input").forEach((input) => input.addEventListener("input", recalc));
+  recalc();
+</script>
+</body>
+</html>
