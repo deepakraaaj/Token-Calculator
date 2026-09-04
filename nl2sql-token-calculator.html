@@ -684,8 +684,16 @@
             <span>Amazon Bedrock Model</span>
             <select id="bedrockPreset">
               <option value="custom">Custom Pricing</option>
-              <option value="bedrock-titan" selected>Amazon Titan Text Express ($0.20 / $0.60)</option>
-              <option value="bedrock-llama">Llama 3.3 70B on Bedrock ($0.72 / $0.72)</option>
+              <option value="bedrock-novamicro" selected>Amazon Nova Micro ($0.035 / $0.14)</option>
+              <option value="bedrock-novalite">Amazon Nova Lite ($0.06 / $0.24)</option>
+              <option value="bedrock-novapro">Amazon Nova Pro ($0.80 / $3.20)</option>
+              <option value="bedrock-novapremier">Amazon Nova Premier ($2.50 / $12.50)</option>
+              <option value="bedrock-titan">Amazon Titan Text Express ($0.20 / $0.60)</option>
+              <option value="bedrock-llama33">Llama 3.3 70B on Bedrock ($0.72 / $0.72)</option>
+              <option value="bedrock-llama4scout">Llama 4 Scout 17B on Bedrock ($0.17 / $0.66)</option>
+              <option value="bedrock-llama4maverick">Llama 4 Maverick 17B on Bedrock ($0.24 / $0.97)</option>
+              <option value="bedrock-mistrallarge">Mistral Large 3 675B ($0.50 / $1.50)</option>
+              <option value="bedrock-deepseek">DeepSeek-R1 on Bedrock ($1.35 / $5.40)</option>
               <option value="bedrock-sonnet">Claude 3.5 Sonnet on Bedrock ($3.00 / $15.00) ⚠ unverified</option>
               <option value="bedrock-haiku">Claude 3 Haiku on Bedrock ($0.25 / $1.25) ⚠ unverified</option>
             </select>
@@ -693,14 +701,14 @@
           <div class="form-grid-2">
             <div class="form-group">
               <label for="bedrockIn">Input $/1M</label>
-              <input id="bedrockIn" type="number" value="0.20" min="0" step="0.01">
+              <input id="bedrockIn" type="number" value="0.035" min="0" step="0.001">
             </div>
             <div class="form-group">
               <label for="bedrockOut">Output $/1M</label>
-              <input id="bedrockOut" type="number" value="0.60" min="0" step="0.01">
+              <input id="bedrockOut" type="number" value="0.14" min="0" step="0.001">
             </div>
           </div>
-          <div class="info-hint" style="margin-top:4px;">Titan &amp; Llama confirmed against AWS's own Price List API (pricing.us-east-1.amazonaws.com), Sep 2026. Claude-on-Bedrock rows are <strong style="color:#f59e0b;">⚠ unverified</strong> — current-gen Claude pricing wasn't present in that feed; check aws.amazon.com/bedrock/pricing directly.</div>
+          <div class="info-hint" style="margin-top:4px;">Nova, Titan, Llama, Mistral &amp; DeepSeek confirmed against AWS's own Price List API (pricing.us-east-1.amazonaws.com), Sep 2026, us-east-1. Claude-on-Bedrock rows are <strong style="color:#f59e0b;">⚠ unverified</strong> — current-gen Claude output pricing wasn't present in that feed; check aws.amazon.com/bedrock/pricing directly.</div>
         </div>
       </section>
 
@@ -945,10 +953,18 @@
   };
 
   const bedrockPresets = {
-    "bedrock-sonnet": { in: 3.00, out: 15.00 },
-    "bedrock-haiku": { in: 0.25, out: 1.25 },
+    "bedrock-novamicro": { in: 0.035, out: 0.14 },
+    "bedrock-novalite": { in: 0.06, out: 0.24 },
+    "bedrock-novapro": { in: 0.80, out: 3.20 },
+    "bedrock-novapremier": { in: 2.50, out: 12.50 },
     "bedrock-titan": { in: 0.20, out: 0.60 },
-    "bedrock-llama": { in: 0.72, out: 0.72 }
+    "bedrock-llama33": { in: 0.72, out: 0.72 },
+    "bedrock-llama4scout": { in: 0.17, out: 0.66 },
+    "bedrock-llama4maverick": { in: 0.24, out: 0.97 },
+    "bedrock-mistrallarge": { in: 0.50, out: 1.50 },
+    "bedrock-deepseek": { in: 1.35, out: 5.40 },
+    "bedrock-sonnet": { in: 3.00, out: 15.00 },
+    "bedrock-haiku": { in: 0.25, out: 1.25 }
   };
 
   const gpuPresets = {
