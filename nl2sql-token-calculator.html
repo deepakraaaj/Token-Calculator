@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -553,9 +553,6 @@
       <p>Estimate token throughput and compute costs across Gemini, Claude, AWS Bedrock, and Self-Hosted GPUs.</p>
     </div>
     <div class="header-actions">
-      <button class="btn" id="themeToggle" title="Toggle Light/Dark Theme">
-        <span id="themeIcon">☀️</span> Theme
-      </button>
       <button class="btn" id="copySummaryBtn" title="Copy cost summary to clipboard">
         📋 Copy Summary
       </button>
@@ -1183,16 +1180,6 @@
         recalc();
       }
     });
-  });
-
-  // Theme Toggle
-  const themeToggle = document.getElementById("themeToggle");
-  const themeIcon = document.getElementById("themeIcon");
-  themeToggle.addEventListener("click", () => {
-    const current = document.documentElement.getAttribute("data-theme");
-    const next = current === "light" ? "dark" : "light";
-    document.documentElement.setAttribute("data-theme", next);
-    themeIcon.textContent = next === "light" ? "🌙" : "☀️";
   });
 
   // Copy Summary
