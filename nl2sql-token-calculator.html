@@ -684,23 +684,23 @@
             <span>Amazon Bedrock Model</span>
             <select id="bedrockPreset">
               <option value="custom">Custom Pricing</option>
-              <option value="bedrock-sonnet" selected>Claude 3.5 Sonnet on Bedrock ($3.00 / $15.00)</option>
-              <option value="bedrock-haiku">Claude 3 Haiku on Bedrock ($0.25 / $1.25)</option>
-              <option value="bedrock-titan">Amazon Titan Text Express ($0.20 / $0.60)</option>
+              <option value="bedrock-titan" selected>Amazon Titan Text Express ($0.20 / $0.60)</option>
               <option value="bedrock-llama">Llama 3.3 70B on Bedrock ($0.72 / $0.72)</option>
+              <option value="bedrock-sonnet">Claude 3.5 Sonnet on Bedrock ($3.00 / $15.00) ⚠ unverified</option>
+              <option value="bedrock-haiku">Claude 3 Haiku on Bedrock ($0.25 / $1.25) ⚠ unverified</option>
             </select>
           </label>
           <div class="form-grid-2">
             <div class="form-group">
               <label for="bedrockIn">Input $/1M</label>
-              <input id="bedrockIn" type="number" value="3.00" min="0" step="0.01">
+              <input id="bedrockIn" type="number" value="0.20" min="0" step="0.01">
             </div>
             <div class="form-group">
               <label for="bedrockOut">Output $/1M</label>
-              <input id="bedrockOut" type="number" value="15.00" min="0" step="0.01">
+              <input id="bedrockOut" type="number" value="0.60" min="0" step="0.01">
             </div>
           </div>
-          <div class="info-hint" style="margin-top:4px; color:#f59e0b;">⚠ Not independently verified today — check aws.amazon.com/bedrock/pricing before relying on this.</div>
+          <div class="info-hint" style="margin-top:4px;">Titan &amp; Llama confirmed against AWS's own Price List API (pricing.us-east-1.amazonaws.com), Sep 2026. Claude-on-Bedrock rows are <strong style="color:#f59e0b;">⚠ unverified</strong> — current-gen Claude pricing wasn't present in that feed; check aws.amazon.com/bedrock/pricing directly.</div>
         </div>
       </section>
 
