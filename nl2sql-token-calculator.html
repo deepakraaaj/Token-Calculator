@@ -1,195 +1,1183 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NL2SQL Token Calculator</title>
+<title>NL2SQL Token & Infrastructure Cost Calculator</title>
+<meta name="description" content="Calculate and compare LLM token volume and monthly costs across Google Gemini, Anthropic Claude, Amazon Bedrock, and Self-Hosted GPU infrastructure.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f6f7f9;
-    --panel: #ffffff;
-    --ink: #1b1f27;
-    --muted: #5f6876;
-    --line: #d9dde5;
-    --blue: #245ca8;
-    --shadow: 0 10px 28px rgba(25, 31, 42, 0.08);
-    --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-    --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --bg: #0c0f17;
+    --bg-surface: #141923;
+    --bg-card: rgba(23, 29, 43, 0.75);
+    --border: rgba(255, 255, 255, 0.08);
+    --border-focus: #3b82f6;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-sub: #64748b;
+    --primary: #3b82f6;
+    --primary-glow: rgba(59, 130, 246, 0.25);
+    --gemini: #38bdf8;
+    --claude: #fb923c;
+    --bedrock: #f59e0b;
+    --selfhosted: #a855f7;
+    --success: #10b981;
+    --success-bg: rgba(16, 185, 129, 0.12);
+    --shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.5);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
   }
 
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    min-height: 100vh;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: var(--sans);
-    line-height: 1.5;
-    padding: 14px 20px;
+  [data-theme="light"] {
+    --bg: #f8fafc;
+    --bg-surface: #f1f5f9;
+    --bg-card: rgba(255, 255, 255, 0.9);
+    --border: #e2e8f0;
+    --border-focus: #2563eb;
+    --text: #0f172a;
+    --text-muted: #475569;
+    --text-sub: #64748b;
+    --primary: #2563eb;
+    --primary-glow: rgba(37, 99, 235, 0.15);
+    --gemini: #0284c7;
+    --claude: #ea580c;
+    --bedrock: #d97706;
+    --selfhosted: #9333ea;
+    --success: #059669;
+    --success-bg: rgba(5, 150, 105, 0.12);
+    --shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.08);
   }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-    width: min(1180px, 100%);
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    padding: 24px 20px 48px;
+    min-height: 100vh;
+    background-image: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.15), transparent 70%),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(168, 85, 247, 0.08), transparent);
+    background-attachment: fixed;
+  }
+
+  .container {
+    max-width: 1320px;
     margin: 0 auto;
   }
-  .card {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: var(--shadow);
-  }
-  h1, h2 {
-    margin: 0 0 12px;
-    font-size: 23px;
-    line-height: 1.2;
-    letter-spacing: 0;
-  }
-  p { margin: 0 0 14px; }
-  .note {
-    color: var(--muted);
-    font-size: 14px;
-  }
-  .controls {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-  }
-  label {
-    display: grid;
-    gap: 6px;
-    color: var(--muted);
-    font-size: 13px;
-  }
-  input {
-    width: 100%;
-    min-height: 38px;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    padding: 7px 9px;
-    color: var(--ink);
-    background: #fff;
-    font: inherit;
-  }
-  input:focus {
-    outline: 2px solid rgba(36, 92, 168, 0.22);
-    border-color: var(--blue);
-  }
-  .metric {
+
+  /* Header */
+  header {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start;
     gap: 16px;
-    padding: 10px 0;
-    border-top: 1px solid var(--line);
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
   }
-  .metric:first-of-type { border-top: 0; }
-  .label { color: var(--muted); }
-  .value {
-    font-family: var(--mono);
+
+  .header-content h1 {
+    font-size: 26px;
     font-weight: 700;
-    text-align: right;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--primary-glow);
+    color: var(--primary);
+    border: 1px solid var(--primary);
+  }
+
+  .header-content p {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-top: 4px;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+  }
+
+  .btn:hover {
+    border-color: var(--primary);
+    background: var(--bg-card);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+
+  .btn-primary:hover {
+    background: #2563eb;
+    color: #fff;
+  }
+
+  /* Preset Pills */
+  .presets-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .presets-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-sub);
+    font-weight: 600;
     white-space: nowrap;
   }
-  @media (max-width: 850px) {
-    body { padding: 12px; }
-    .grid, .controls { grid-template-columns: 1fr; }
+
+  .preset-pill {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .preset-pill:hover, .preset-pill.active {
+    background: var(--primary-glow);
+    border-color: var(--primary);
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  /* Main Grid Layout */
+  .layout-grid {
+    display: grid;
+    grid-template-columns: 480px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  @media (max-width: 1080px) {
+    .layout-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Card */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+    margin-bottom: 20px;
+  }
+
+  .card:last-child {
+    margin-bottom: 0;
+  }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .card-title span.tag {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--bg-surface);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  /* Controls Form */
+  .form-group {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .form-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .form-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .info-hint {
+    font-size: 11px;
+    color: var(--text-sub);
+    font-weight: normal;
+  }
+
+  input[type="number"], select {
+    width: 100%;
+    min-height: 38px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  input[type="number"]:focus, select:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+  }
+
+  /* Provider Pill Selectors */
+  .model-select-group {
+    margin-bottom: 12px;
+  }
+
+  .model-select-group label {
+    margin-bottom: 4px;
+  }
+
+  /* Output Cards */
+  .summary-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 640px) {
+    .summary-metrics {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .metric-box {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+  }
+
+  .metric-box .metric-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+
+  .metric-box .metric-value {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .metric-box .metric-sub {
+    font-size: 11px;
+    color: var(--text-sub);
+    margin-top: 4px;
+  }
+
+  /* Provider Comparison Grid */
+  .provider-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 768px) {
+    .provider-cards-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .provider-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+
+  .provider-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .provider-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+  }
+
+  .provider-card.gemini::before { background: var(--gemini); }
+  .provider-card.claude::before { background: var(--claude); }
+  .provider-card.bedrock::before { background: var(--bedrock); }
+  .provider-card.selfhosted::before { background: var(--selfhosted); }
+
+  .provider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .provider-name {
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .provider-card.gemini .provider-name { color: var(--gemini); }
+  .provider-card.claude .provider-name { color: var(--claude); }
+  .provider-card.bedrock .provider-name { color: var(--bedrock); }
+  .provider-card.selfhosted .provider-name { color: var(--selfhosted); }
+
+  .provider-cost {
+    font-family: var(--font-mono);
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+
+  .provider-period {
+    font-size: 12px;
+    color: var(--text-sub);
+    margin-bottom: 14px;
+  }
+
+  .provider-stats {
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stat-item .stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .stat-item .stat-val {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .winner-pill {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid var(--success);
+    display: none;
+  }
+
+  /* Comparison Bar Chart */
+  .chart-section {
+    margin-top: 20px;
+  }
+
+  .chart-bar-group {
+    margin-bottom: 12px;
+  }
+
+  .chart-bar-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .chart-bar-bg {
+    height: 10px;
+    background: var(--bg-surface);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--border);
+  }
+
+  .chart-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .fill-gemini { background: var(--gemini); }
+  .fill-claude { background: var(--claude); }
+  .fill-bedrock { background: var(--bedrock); }
+  .fill-selfhosted { background: var(--selfhosted); }
+
+  /* Break-even / Insight Box */
+  .insight-box {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-top: 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    display: flex;
+    gap: 12px;
+  }
+
+  .insight-icon {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .insight-text strong {
+    color: var(--primary);
+  }
+
+  /* Toast Notification */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--text);
+    color: var(--bg);
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.25s ease;
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateY(0);
   }
 </style>
 </head>
 <body>
-  <main class="grid">
-    <section class="card">
-      <h1>Editable Calculator</h1>
-      <p class="note">Default calculator uses a mixed daily pattern: 12 read, 5 update, 2 create, 1 delete per user.</p>
-      <div class="controls">
-        <label>Users
-          <input id="users" type="number" value="1" min="1">
-        </label>
-        <label>Read requests / user / day
-          <input id="readCount" type="number" value="12" min="0">
-        </label>
-        <label>Update CRUD / user / day
-          <input id="updateCount" type="number" value="5" min="0">
-        </label>
-        <label>Create CRUD / user / day
-          <input id="createCount" type="number" value="2" min="0">
-        </label>
-        <label>Delete requests / user / day
-          <input id="deleteCount" type="number" value="1" min="0">
-        </label>
-        <label>Buffer %
-          <input id="buffer" type="number" value="25" min="0">
-        </label>
-        <label>Gemini input $ / 1M
-          <input id="geminiIn" type="number" value="0.75" min="0" step="0.01">
-        </label>
-        <label>Gemini output $ / 1M
-          <input id="geminiOut" type="number" value="3.75" min="0" step="0.01">
-        </label>
-        <label>Claude input $ / 1M
-          <input id="claudeIn" type="number" value="2" min="0" step="0.01">
-        </label>
-        <label>Claude output $ / 1M
-          <input id="claudeOut" type="number" value="10" min="0" step="0.01">
-        </label>
-      </div>
-    </section>
 
-    <section class="card">
-      <h2>Calculator Output</h2>
-      <p class="note">This is the selected mixed usecase. Change the daily counts on the left to model another user pattern.</p>
-      <div class="metric"><span class="label">Input tokens / day</span><span class="value" id="calcInputDay"></span></div>
-      <div class="metric"><span class="label">Output tokens / day</span><span class="value" id="calcOutputDay"></span></div>
-      <div class="metric"><span class="label">Total tokens / day</span><span class="value" id="calcDay"></span></div>
-      <div class="metric"><span class="label">Total tokens / week</span><span class="value" id="calcWeek"></span></div>
-      <div class="metric"><span class="label">Total tokens / month</span><span class="value" id="calcMonth"></span></div>
-      <div class="metric"><span class="label">Monthly planning budget</span><span class="value" id="calcMonthBuffered"></span></div>
-      <div class="metric"><span class="label">Gemini monthly cost</span><span class="value" id="geminiCost"></span></div>
-      <div class="metric"><span class="label">Claude monthly cost</span><span class="value" id="claudeCost"></span></div>
-    </section>
-  </main>
+<div class="container">
+  <!-- Top Navigation & Header -->
+  <header>
+    <div class="header-content">
+      <h1>
+        NL2SQL Token & Cost Calculator
+        <span class="badge">Multi-Provider</span>
+      </h1>
+      <p>Estimate token throughput and compute costs across Gemini, Claude, AWS Bedrock, and Self-Hosted GPUs.</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="themeToggle" title="Toggle Light/Dark Theme">
+        <span id="themeIcon">☀️</span> Theme
+      </button>
+      <button class="btn" id="copySummaryBtn" title="Copy cost summary to clipboard">
+        📋 Copy Summary
+      </button>
+      <a href="https://github.com/deepakraaaj/Token-Calculator" target="_blank" rel="noopener" class="btn">
+        GitHub
+      </a>
+    </div>
+  </header>
+
+  <!-- Workload Presets Bar -->
+  <div class="presets-bar">
+    <span class="presets-label">Workload Presets:</span>
+    <button class="preset-pill active" data-preset="default">Default Mixed (12 R / 5 U / 2 C / 1 D)</button>
+    <button class="preset-pill" data-preset="read-heavy">Read-Heavy Analytics (35 R / 2 U / 0 C / 0 D)</button>
+    <button class="preset-pill" data-preset="enterprise">High-Scale Enterprise (100 Users)</button>
+    <button class="preset-pill" data-preset="dev">Single-Dev Sandbox (1 User)</button>
+  </div>
+
+  <div class="layout-grid">
+    <!-- LEFT COLUMN: Parameter Controls -->
+    <div class="controls-column">
+      
+      <!-- Section 1: User & Workload Traffic -->
+      <section class="card">
+        <div class="card-title">
+          <span>Workload & Operations</span>
+          <span class="tag">Traffic Model</span>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="users">Active Users <span class="info-hint">Concurrent/day</span></label>
+            <input id="users" type="number" value="1" min="1" step="1">
+          </div>
+          <div class="form-group">
+            <label for="buffer">Safety Buffer % <span class="info-hint">Headroom</span></label>
+            <input id="buffer" type="number" value="25" min="0" step="5">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="readCount">Read / SELECT queries <span class="info-hint">850 in / 150 out</span></label>
+            <input id="readCount" type="number" value="12" min="0">
+          </div>
+          <div class="form-group">
+            <label for="updateCount">Update CRUD <span class="info-hint">3,000 in / 200 out</span></label>
+            <input id="updateCount" type="number" value="5" min="0">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="createCount">Create CRUD <span class="info-hint">4,400 in / 300 out</span></label>
+            <input id="createCount" type="number" value="2" min="0">
+          </div>
+          <div class="form-group">
+            <label for="deleteCount">Delete queries <span class="info-hint">2,000 in / 200 out</span></label>
+            <input id="deleteCount" type="number" value="1" min="0">
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Managed API Models & Pricing -->
+      <section class="card">
+        <div class="card-title">
+          <span>API Providers ($ / 1M Tokens)</span>
+          <span class="tag">Pay-as-you-go</span>
+        </div>
+
+        <!-- Google Gemini -->
+        <div class="model-select-group">
+          <label>
+            <span>Google Gemini Model</span>
+            <select id="geminiPreset">
+              <option value="custom">Custom Pricing</option>
+              <option value="flash" selected>Gemini 1.5 Flash ($0.075 / $0.30)</option>
+              <option value="flash2">Gemini 2.0 Flash ($0.10 / $0.40)</option>
+              <option value="pro">Gemini 1.5 Pro ($1.25 / $5.00)</option>
+            </select>
+          </label>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="geminiIn">Input $/1M</label>
+              <input id="geminiIn" type="number" value="0.075" min="0" step="0.001">
+            </div>
+            <div class="form-group">
+              <label for="geminiOut">Output $/1M</label>
+              <input id="geminiOut" type="number" value="0.30" min="0" step="0.001">
+            </div>
+          </div>
+        </div>
+
+        <!-- Anthropic Claude Direct -->
+        <div class="model-select-group">
+          <label>
+            <span>Anthropic Claude Direct</span>
+            <select id="claudePreset">
+              <option value="custom">Custom Pricing</option>
+              <option value="sonnet" selected>Claude 3.5 Sonnet ($3.00 / $15.00)</option>
+              <option value="haiku">Claude 3.5 Haiku ($0.80 / $4.00)</option>
+              <option value="opus">Claude 3 Opus ($15.00 / $75.00)</option>
+            </select>
+          </label>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="claudeIn">Input $/1M</label>
+              <input id="claudeIn" type="number" value="3.00" min="0" step="0.01">
+            </div>
+            <div class="form-group">
+              <label for="claudeOut">Output $/1M</label>
+              <input id="claudeOut" type="number" value="15.00" min="0" step="0.01">
+            </div>
+          </div>
+        </div>
+
+        <!-- Amazon Bedrock -->
+        <div class="model-select-group">
+          <label>
+            <span>Amazon Bedrock Model</span>
+            <select id="bedrockPreset">
+              <option value="custom">Custom Pricing</option>
+              <option value="bedrock-sonnet" selected>Claude 3.5 Sonnet on Bedrock ($3.00 / $15.00)</option>
+              <option value="bedrock-haiku">Claude 3 Haiku on Bedrock ($0.25 / $1.25)</option>
+              <option value="bedrock-titan">Amazon Titan Text Express ($0.20 / $0.60)</option>
+              <option value="bedrock-llama">Llama 3.3 70B on Bedrock ($0.72 / $0.72)</option>
+            </select>
+          </label>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="bedrockIn">Input $/1M</label>
+              <input id="bedrockIn" type="number" value="3.00" min="0" step="0.01">
+            </div>
+            <div class="form-group">
+              <label for="bedrockOut">Output $/1M</label>
+              <input id="bedrockOut" type="number" value="15.00" min="0" step="0.01">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3: Self-Hosted GPU Infrastructure -->
+      <section class="card">
+        <div class="card-title">
+          <span>Self-Hosted GPU Infrastructure</span>
+          <span class="tag">vLLM / Ollama / TGI</span>
+        </div>
+
+        <div class="form-group">
+          <label for="gpuPreset">GPU Hardware Profile</label>
+          <select id="gpuPreset">
+            <option value="custom">Custom Server</option>
+            <option value="runpod4090" selected>RunPod / Lambda 1x RTX 4090 24GB ($0.74/hr)</option>
+            <option value="g5xlarge">AWS EC2 g5.xlarge (1x A10G 24GB) ($1.01/hr)</option>
+            <option value="g52xlarge">AWS EC2 g5.2xlarge (1x A10G 24GB) ($1.21/hr)</option>
+            <option value="g512xlarge">AWS EC2 g5.12xlarge (4x A10G 96GB) ($5.67/hr)</option>
+            <option value="g6e2xlarge">AWS EC2 g6e.2xlarge (1x L40S 48GB) ($1.85/hr)</option>
+          </select>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="gpuHourly">Hourly Rate ($/hr)</label>
+            <input id="gpuHourly" type="number" value="0.74" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label for="gpuInstances">Instance Count</label>
+            <input id="gpuInstances" type="number" value="1" min="1" step="1">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="gpuHoursMonth">Active Hours / Month <span class="info-hint">720h = 24/7</span></label>
+            <input id="gpuHoursMonth" type="number" value="720" min="1" max="744">
+          </div>
+          <div class="form-group">
+            <label for="gpuOverhead">Overhead & Storage % <span class="info-hint">EBS, egress, ops</span></label>
+            <input id="gpuOverhead" type="number" value="10" min="0" step="1">
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- RIGHT COLUMN: Output Dashboard & Comparative Analytics -->
+    <div class="dashboard-column">
+      
+      <!-- Top Overview Metrics -->
+      <div class="summary-metrics">
+        <div class="metric-box">
+          <div class="metric-label">Daily Token Volume</div>
+          <div class="metric-value" id="dispTotalDay">-</div>
+          <div class="metric-sub"><span id="dispInputDay">-</span> in / <span id="dispOutputDay">-</span> out</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Monthly Baseline</div>
+          <div class="metric-value" id="dispTotalMonth">-</div>
+          <div class="metric-sub">Across 30 operating days</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Monthly + Buffer (<span id="dispBufferVal">25</span>%)</div>
+          <div class="metric-value" id="dispTotalBuffered">-</div>
+          <div class="metric-sub" id="dispTotalQueries">- total queries/mo</div>
+        </div>
+      </div>
+
+      <!-- Provider Comparison Cards -->
+      <div class="provider-cards-grid">
+        
+        <!-- Gemini Card -->
+        <div class="provider-card gemini">
+          <div class="provider-header">
+            <span class="provider-name">Google Gemini</span>
+            <span class="winner-pill" id="badge-gemini">Lowest Cost</span>
+          </div>
+          <div class="provider-cost" id="geminiTotalCost">$0.00</div>
+          <div class="provider-period">per month with buffer</div>
+          <div class="provider-stats">
+            <div class="stat-item">
+              <div class="stat-label">Cost / User</div>
+              <div class="stat-val" id="geminiPerUser">$0.00</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Effective / 1M</div>
+              <div class="stat-val" id="geminiEffective">$0.00</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Claude Direct Card -->
+        <div class="provider-card claude">
+          <div class="provider-header">
+            <span class="provider-name">Anthropic Claude</span>
+            <span class="winner-pill" id="badge-claude">Lowest Cost</span>
+          </div>
+          <div class="provider-cost" id="claudeTotalCost">$0.00</div>
+          <div class="provider-period">per month with buffer</div>
+          <div class="provider-stats">
+            <div class="stat-item">
+              <div class="stat-label">Cost / User</div>
+              <div class="stat-val" id="claudePerUser">$0.00</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Effective / 1M</div>
+              <div class="stat-val" id="claudeEffective">$0.00</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Amazon Bedrock Card -->
+        <div class="provider-card bedrock">
+          <div class="provider-header">
+            <span class="provider-name">Amazon Bedrock</span>
+            <span class="winner-pill" id="badge-bedrock">Lowest Cost</span>
+          </div>
+          <div class="provider-cost" id="bedrockTotalCost">$0.00</div>
+          <div class="provider-period">per month with buffer</div>
+          <div class="provider-stats">
+            <div class="stat-item">
+              <div class="stat-label">Cost / User</div>
+              <div class="stat-val" id="bedrockPerUser">$0.00</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Effective / 1M</div>
+              <div class="stat-val" id="bedrockEffective">$0.00</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Self-Hosted GPU Card -->
+        <div class="provider-card selfhosted">
+          <div class="provider-header">
+            <span class="provider-name">Self-Hosted GPU</span>
+            <span class="winner-pill" id="badge-selfhosted">Lowest Cost</span>
+          </div>
+          <div class="provider-cost" id="selfhostedTotalCost">$0.00</div>
+          <div class="provider-period">per month (instance + ops)</div>
+          <div class="provider-stats">
+            <div class="stat-item">
+              <div class="stat-label">Cost / User</div>
+              <div class="stat-val" id="selfhostedPerUser">$0.00</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Effective / 1M</div>
+              <div class="stat-val" id="selfhostedEffective">$0.00</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Comparative Bar Chart -->
+      <section class="card chart-section">
+        <div class="card-title">
+          <span>Cost Comparison Visualizer</span>
+          <span class="tag">Monthly Normalized</span>
+        </div>
+
+        <div class="chart-bar-group">
+          <div class="chart-bar-header">
+            <span>Google Gemini</span>
+            <span id="chartGeminiVal">$0.00</span>
+          </div>
+          <div class="chart-bar-bg">
+            <div class="chart-bar-fill fill-gemini" id="barGemini" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="chart-bar-group">
+          <div class="chart-bar-header">
+            <span>Anthropic Claude</span>
+            <span id="chartClaudeVal">$0.00</span>
+          </div>
+          <div class="chart-bar-bg">
+            <div class="chart-bar-fill fill-claude" id="barClaude" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="chart-bar-group">
+          <div class="chart-bar-header">
+            <span>Amazon Bedrock</span>
+            <span id="chartBedrockVal">$0.00</span>
+          </div>
+          <div class="chart-bar-bg">
+            <div class="chart-bar-fill fill-bedrock" id="barBedrock" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="chart-bar-group">
+          <div class="chart-bar-header">
+            <span>Self-Hosted GPU</span>
+            <span id="chartSelfhostedVal">$0.00</span>
+          </div>
+          <div class="chart-bar-bg">
+            <div class="chart-bar-fill fill-selfhosted" id="barSelfhosted" style="width: 0%;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Architecture Insight / Recommendation Card -->
+      <div class="insight-box">
+        <div class="insight-icon">💡</div>
+        <div class="insight-text" id="insightContent">
+          Calculating architecture recommendations...
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Summary copied to clipboard!</div>
 
 <script>
+  // Operation token weights
   const operations = [
     { name: "Read / SELECT", input: 850, output: 150, inputId: "readCount" },
     { name: "Update CRUD", input: 3000, output: 200, inputId: "updateCount" },
     { name: "Create CRUD", input: 4400, output: 300, inputId: "createCount" },
     { name: "Delete", input: 2000, output: 200, inputId: "deleteCount" }
   ];
+
+  // Presets mapping
+  const geminiPresets = {
+    flash: { in: 0.075, out: 0.30 },
+    flash2: { in: 0.10, out: 0.40 },
+    pro: { in: 1.25, out: 5.00 }
+  };
+
+  const claudePresets = {
+    sonnet: { in: 3.00, out: 15.00 },
+    haiku: { in: 0.80, out: 4.00 },
+    opus: { in: 15.00, out: 75.00 }
+  };
+
+  const bedrockPresets = {
+    "bedrock-sonnet": { in: 3.00, out: 15.00 },
+    "bedrock-haiku": { in: 0.25, out: 1.25 },
+    "bedrock-titan": { in: 0.20, out: 0.60 },
+    "bedrock-llama": { in: 0.72, out: 0.72 }
+  };
+
+  const gpuPresets = {
+    runpod4090: { rate: 0.74, instances: 1, hours: 720, overhead: 10 },
+    g5xlarge: { rate: 1.01, instances: 1, hours: 720, overhead: 10 },
+    g52xlarge: { rate: 1.21, instances: 1, hours: 720, overhead: 10 },
+    g512xlarge: { rate: 5.67, instances: 1, hours: 720, overhead: 10 },
+    g6e2xlarge: { rate: 1.85, instances: 1, hours: 720, overhead: 10 }
+  };
+
+  const workloadPresets = {
+    default: { users: 1, read: 12, update: 5, create: 2, delete: 1, buffer: 25 },
+    "read-heavy": { users: 1, read: 35, update: 2, create: 0, delete: 0, buffer: 20 },
+    enterprise: { users: 100, read: 25, update: 10, create: 5, delete: 2, buffer: 30 },
+    dev: { users: 1, read: 5, update: 2, create: 1, delete: 1, buffer: 10 }
+  };
+
   const fmt = new Intl.NumberFormat("en-US");
-  const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+  const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const moneyPrecise = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 4 });
 
   function val(id) {
     return Number(document.getElementById(id).value || 0);
   }
 
+  function setVal(id, v) {
+    document.getElementById(id).value = v;
+  }
+
+  // Recalculate all metrics
   function recalc() {
-    const users = val("users");
-    const buffer = val("buffer") / 100;
+    const users = Math.max(1, val("users"));
+    const bufferPercent = val("buffer");
+    const buffer = bufferPercent / 100;
+    
+    document.getElementById("dispBufferVal").textContent = bufferPercent;
+
+    // Daily and monthly token math
     const inputDay = users * operations.reduce((sum, item) => sum + val(item.inputId) * item.input, 0);
     const outputDay = users * operations.reduce((sum, item) => sum + val(item.inputId) * item.output, 0);
     const totalDay = inputDay + outputDay;
+
+    const queriesDay = users * operations.reduce((sum, item) => sum + val(item.inputId), 0);
+    const totalQueriesMonth = Math.round(queriesDay * 30 * (1 + buffer));
+
     const inputMonth = inputDay * 30;
     const outputMonth = outputDay * 30;
-    const month = totalDay * 30;
-    const monthBuffered = month * (1 + buffer);
-    const gemini = ((inputMonth * val("geminiIn")) + (outputMonth * val("geminiOut"))) / 1000000 * (1 + buffer);
-    const claude = ((inputMonth * val("claudeIn")) + (outputMonth * val("claudeOut"))) / 1000000 * (1 + buffer);
+    const totalMonth = totalDay * 30;
+    const totalBuffered = totalMonth * (1 + buffer);
 
-    document.getElementById("calcInputDay").textContent = fmt.format(inputDay);
-    document.getElementById("calcOutputDay").textContent = fmt.format(outputDay);
-    document.getElementById("calcDay").textContent = fmt.format(totalDay);
-    document.getElementById("calcWeek").textContent = fmt.format(totalDay * 7);
-    document.getElementById("calcMonth").textContent = fmt.format(month);
-    document.getElementById("calcMonthBuffered").textContent = fmt.format(monthBuffered);
-    document.getElementById("geminiCost").textContent = money.format(gemini);
-    document.getElementById("claudeCost").textContent = money.format(claude);
+    // Update Overview numbers
+    document.getElementById("dispTotalDay").textContent = fmt.format(totalDay);
+    document.getElementById("dispInputDay").textContent = fmt.format(inputDay);
+    document.getElementById("dispOutputDay").textContent = fmt.format(outputDay);
+    document.getElementById("dispTotalMonth").textContent = fmt.format(totalMonth);
+    document.getElementById("dispTotalBuffered").textContent = fmt.format(Math.round(totalBuffered));
+    document.getElementById("dispTotalQueries").textContent = `${fmt.format(totalQueriesMonth)} total queries/mo`;
+
+    // API Cost Calculations: (inputTokens * inRate + outputTokens * outRate) / 1M * (1 + buffer)
+    const geminiCost = ((inputMonth * val("geminiIn")) + (outputMonth * val("geminiOut"))) / 1000000 * (1 + buffer);
+    const claudeCost = ((inputMonth * val("claudeIn")) + (outputMonth * val("claudeOut"))) / 1000000 * (1 + buffer);
+    const bedrockCost = ((inputMonth * val("bedrockIn")) + (outputMonth * val("bedrockOut"))) / 1000000 * (1 + buffer);
+
+    // Self-Hosted Cost Calculation: instances * hourlyRate * hours * (1 + overhead%)
+    const gpuInstances = Math.max(1, val("gpuInstances"));
+    const gpuHourly = val("gpuHourly");
+    const gpuHours = val("gpuHoursMonth");
+    const gpuOverhead = val("gpuOverhead") / 100;
+    const selfhostedCost = (gpuInstances * gpuHourly * gpuHours) * (1 + gpuOverhead);
+
+    // Effective cost per 1M tokens
+    const effM = (totalBuffered > 0) ? (totalBuffered / 1000000) : 1;
+    const geminiEff = geminiCost / effM;
+    const claudeEff = claudeCost / effM;
+    const bedrockEff = bedrockCost / effM;
+    const selfhostedEff = selfhostedCost / effM;
+
+    // Render Provider Cards
+    document.getElementById("geminiTotalCost").textContent = money.format(geminiCost);
+    document.getElementById("geminiPerUser").textContent = money.format(geminiCost / users);
+    document.getElementById("geminiEffective").textContent = moneyPrecise.format(geminiEff);
+
+    document.getElementById("claudeTotalCost").textContent = money.format(claudeCost);
+    document.getElementById("claudePerUser").textContent = money.format(claudeCost / users);
+    document.getElementById("claudeEffective").textContent = moneyPrecise.format(claudeEff);
+
+    document.getElementById("bedrockTotalCost").textContent = money.format(bedrockCost);
+    document.getElementById("bedrockPerUser").textContent = money.format(bedrockCost / users);
+    document.getElementById("bedrockEffective").textContent = moneyPrecise.format(bedrockEff);
+
+    document.getElementById("selfhostedTotalCost").textContent = money.format(selfhostedCost);
+    document.getElementById("selfhostedPerUser").textContent = money.format(selfhostedCost / users);
+    document.getElementById("selfhostedEffective").textContent = moneyPrecise.format(selfhostedEff);
+
+    // Winner Pill
+    const costs = [
+      { id: "gemini", cost: geminiCost },
+      { id: "claude", cost: claudeCost },
+      { id: "bedrock", cost: bedrockCost },
+      { id: "selfhosted", cost: selfhostedCost }
+    ];
+    costs.sort((a, b) => a.cost - b.cost);
+    const winner = costs[0];
+
+    ["gemini", "claude", "bedrock", "selfhosted"].forEach((key) => {
+      const badge = document.getElementById(`badge-${key}`);
+      if (key === winner.id && winner.cost > 0) {
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+    });
+
+    // Visual Chart Bars
+    const maxCost = Math.max(...costs.map(c => c.cost), 1);
+    document.getElementById("chartGeminiVal").textContent = money.format(geminiCost);
+    document.getElementById("barGemini").style.width = `${Math.min(100, Math.max(4, (geminiCost / maxCost) * 100))}%`;
+
+    document.getElementById("chartClaudeVal").textContent = money.format(claudeCost);
+    document.getElementById("barClaude").style.width = `${Math.min(100, Math.max(4, (claudeCost / maxCost) * 100))}%`;
+
+    document.getElementById("chartBedrockVal").textContent = money.format(bedrockCost);
+    document.getElementById("barBedrock").style.width = `${Math.min(100, Math.max(4, (bedrockCost / maxCost) * 100))}%`;
+
+    document.getElementById("chartSelfhostedVal").textContent = money.format(selfhostedCost);
+    document.getElementById("barSelfhosted").style.width = `${Math.min(100, Math.max(4, (selfhostedCost / maxCost) * 100))}%`;
+
+    // Dynamic Architecture Insight
+    const insightEl = document.getElementById("insightContent");
+    const cheapestApi = [costs.find(c => c.id === "gemini"), costs.find(c => c.id === "claude"), costs.find(c => c.id === "bedrock")].sort((a,b) => a.cost - b.cost)[0];
+
+    if (selfhostedCost > cheapestApi.cost) {
+      const diff = selfhostedCost - cheapestApi.cost;
+      insightEl.innerHTML = `At current volume of <strong>${fmt.format(Math.round(totalBuffered))} monthly tokens</strong>, managed API (<strong>${capitalize(cheapestApi.id)}</strong> at ${money.format(cheapestApi.cost)}/mo) is <strong>${money.format(diff)} cheaper</strong> than 24/7 dedicated GPU hosting (${money.format(selfhostedCost)}/mo). Self-hosting typically breaks even at higher sustained query loads (> 50M-100M tokens/mo).`;
+    } else {
+      const diff = cheapestApi.cost - selfhostedCost;
+      insightEl.innerHTML = `At your high volume of <strong>${fmt.format(Math.round(totalBuffered))} monthly tokens</strong>, <strong>Self-Hosted GPU infrastructure</strong> is <strong>${money.format(diff)} cheaper</strong> per month than ${capitalize(cheapestApi.id)}! It yields an effective cost of only <strong>${moneyPrecise.format(selfhostedEff)} per 1M tokens</strong>.`;
+    }
   }
 
+  function capitalize(s) {
+    if (s === "gemini") return "Gemini";
+    if (s === "claude") return "Claude Direct";
+    if (s === "bedrock") return "Amazon Bedrock";
+    if (s === "selfhosted") return "Self-Hosted GPU";
+    return s;
+  }
+
+  // Listeners for inputs
   document.querySelectorAll("input").forEach((input) => input.addEventListener("input", recalc));
+
+  // Provider presets listeners
+  document.getElementById("geminiPreset").addEventListener("change", (e) => {
+    const val = e.target.value;
+    if (geminiPresets[val]) {
+      setVal("geminiIn", geminiPresets[val].in);
+      setVal("geminiOut", geminiPresets[val].out);
+    }
+    recalc();
+  });
+
+  document.getElementById("claudePreset").addEventListener("change", (e) => {
+    const val = e.target.value;
+    if (claudePresets[val]) {
+      setVal("claudeIn", claudePresets[val].in);
+      setVal("claudeOut", claudePresets[val].out);
+    }
+    recalc();
+  });
+
+  document.getElementById("bedrockPreset").addEventListener("change", (e) => {
+    const val = e.target.value;
+    if (bedrockPresets[val]) {
+      setVal("bedrockIn", bedrockPresets[val].in);
+      setVal("bedrockOut", bedrockPresets[val].out);
+    }
+    recalc();
+  });
+
+  document.getElementById("gpuPreset").addEventListener("change", (e) => {
+    const val = e.target.value;
+    if (gpuPresets[val]) {
+      setVal("gpuHourly", gpuPresets[val].rate);
+      setVal("gpuInstances", gpuPresets[val].instances);
+      setVal("gpuHoursMonth", gpuPresets[val].hours);
+      setVal("gpuOverhead", gpuPresets[val].overhead);
+    }
+    recalc();
+  });
+
+  // Workload Preset Pills
+  document.querySelectorAll(".preset-pill").forEach(pill => {
+    pill.addEventListener("click", () => {
+      document.querySelectorAll(".preset-pill").forEach(p => p.classList.remove("active"));
+      pill.classList.add("active");
+      const p = workloadPresets[pill.dataset.preset];
+      if (p) {
+        setVal("users", p.users);
+        setVal("readCount", p.read);
+        setVal("updateCount", p.update);
+        setVal("createCount", p.create);
+        setVal("deleteCount", p.delete);
+        setVal("buffer", p.buffer);
+        recalc();
+      }
+    });
+  });
+
+  // Theme Toggle
+  const themeToggle = document.getElementById("themeToggle");
+  const themeIcon = document.getElementById("themeIcon");
+  themeToggle.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme");
+    const next = current === "light" ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", next);
+    themeIcon.textContent = next === "light" ? "🌙" : "☀️";
+  });
+
+  // Copy Summary
+  const copyBtn = document.getElementById("copySummaryBtn");
+  const toast = document.getElementById("toast");
+  copyBtn.addEventListener("click", () => {
+    const summaryText = `NL2SQL Cost Calculation Summary
+----------------------------------------
+- Users: ${val("users")}
+- Monthly Tokens (Buffered): ${document.getElementById("dispTotalBuffered").textContent}
+- Google Gemini: ${document.getElementById("geminiTotalCost").textContent}/mo
+- Anthropic Claude: ${document.getElementById("claudeTotalCost").textContent}/mo
+- Amazon Bedrock: ${document.getElementById("bedrockTotalCost").textContent}/mo
+- Self-Hosted GPU: ${document.getElementById("selfhostedTotalCost").textContent}/mo
+Generated via NL2SQL Token Calculator: https://nl2sql-token-calculator.vercel.app`;
+
+    navigator.clipboard.writeText(summaryText).then(() => {
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2200);
+    });
+  });
+
+  // Initial calculation
   recalc();
 </script>
+
 </body>
 </html>
