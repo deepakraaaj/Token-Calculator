@@ -632,21 +632,25 @@
             <span>Google Gemini Model</span>
             <select id="geminiPreset">
               <option value="custom">Custom Pricing</option>
-              <option value="flash" selected>Gemini 1.5 Flash ($0.075 / $0.30)</option>
-              <option value="flash2">Gemini 2.0 Flash ($0.10 / $0.40)</option>
-              <option value="pro">Gemini 1.5 Pro ($1.25 / $5.00)</option>
+              <option value="flashlite25" selected>Gemini 2.5 Flash-Lite ($0.10 / $0.40)</option>
+              <option value="flash25">Gemini 2.5 Flash ($0.30 / $2.50)</option>
+              <option value="pro25">Gemini 2.5 Pro, ≤200k ($1.25 / $10.00)</option>
+              <option value="flashlite31">Gemini 3.1 Flash-Lite ($0.25 / $1.50)</option>
+              <option value="pro31">Gemini 3.1 Pro, ≤200k ($2.00 / $12.00)</option>
+              <option value="flash38">Gemini 3.8 Flash, promo thru 2026 ($0.75 / $3.75)</option>
             </select>
           </label>
           <div class="form-grid-2">
             <div class="form-group">
               <label for="geminiIn">Input $/1M</label>
-              <input id="geminiIn" type="number" value="0.075" min="0" step="0.001">
+              <input id="geminiIn" type="number" value="0.10" min="0" step="0.001">
             </div>
             <div class="form-group">
               <label for="geminiOut">Output $/1M</label>
-              <input id="geminiOut" type="number" value="0.30" min="0" step="0.001">
+              <input id="geminiOut" type="number" value="0.40" min="0" step="0.001">
             </div>
           </div>
+          <div class="info-hint" style="margin-top:4px;">Verified from ai.google.dev/gemini-api/docs/pricing, Sep 2026.</div>
         </div>
 
         <!-- Anthropic Claude Direct -->
@@ -655,21 +659,23 @@
             <span>Anthropic Claude Direct</span>
             <select id="claudePreset">
               <option value="custom">Custom Pricing</option>
-              <option value="sonnet" selected>Claude 3.5 Sonnet ($3.00 / $15.00)</option>
-              <option value="haiku">Claude 3.5 Haiku ($0.80 / $4.00)</option>
-              <option value="opus">Claude 3 Opus ($15.00 / $75.00)</option>
+              <option value="haiku45" selected>Claude Haiku 4.5 ($1.00 / $5.00)</option>
+              <option value="sonnet5">Claude Sonnet 5 ($2.00 / $10.00)</option>
+              <option value="opus5">Claude Opus 5 ($5.00 / $25.00)</option>
+              <option value="fable51">Claude Fable 5.1 ($10.00 / $50.00)</option>
             </select>
           </label>
           <div class="form-grid-2">
             <div class="form-group">
               <label for="claudeIn">Input $/1M</label>
-              <input id="claudeIn" type="number" value="3.00" min="0" step="0.01">
+              <input id="claudeIn" type="number" value="1.00" min="0" step="0.01">
             </div>
             <div class="form-group">
               <label for="claudeOut">Output $/1M</label>
-              <input id="claudeOut" type="number" value="15.00" min="0" step="0.01">
+              <input id="claudeOut" type="number" value="5.00" min="0" step="0.01">
             </div>
           </div>
+          <div class="info-hint" style="margin-top:4px;">Verified from claude.com/pricing, Sep 2026.</div>
         </div>
 
         <!-- Amazon Bedrock -->
@@ -694,6 +700,7 @@
               <input id="bedrockOut" type="number" value="15.00" min="0" step="0.01">
             </div>
           </div>
+          <div class="info-hint" style="margin-top:4px; color:#f59e0b;">⚠ Not independently verified today — check aws.amazon.com/bedrock/pricing before relying on this.</div>
         </div>
       </section>
 
@@ -708,18 +715,19 @@
           <label for="gpuPreset">GPU Hardware Profile</label>
           <select id="gpuPreset">
             <option value="custom">Custom Server</option>
-            <option value="runpod4090" selected>RunPod / Lambda 1x RTX 4090 24GB ($0.74/hr)</option>
+            <option value="runpod4090" selected>RunPod 1x RTX 4090 24GB, Secure Cloud ($0.69/hr)</option>
             <option value="g5xlarge">AWS EC2 g5.xlarge (1x A10G 24GB) ($1.01/hr)</option>
             <option value="g52xlarge">AWS EC2 g5.2xlarge (1x A10G 24GB) ($1.21/hr)</option>
-            <option value="g512xlarge">AWS EC2 g5.12xlarge (4x A10G 96GB) ($5.67/hr)</option>
-            <option value="g6e2xlarge">AWS EC2 g6e.2xlarge (1x L40S 48GB) ($1.85/hr)</option>
+            <option value="g512xlarge">AWS EC2 g5.12xlarge (4x A10G 96GB) ($5.73/hr)</option>
+            <option value="g6e2xlarge">AWS EC2 g6e.2xlarge (1x L40S 48GB) ($2.24/hr)</option>
           </select>
+          <div class="info-hint" style="margin-top:4px; color:#f59e0b;">⚠ GPU rates change often — spot-checked Sep 2026, verify at runpod.io / aws.amazon.com/ec2/pricing before relying on this.</div>
         </div>
 
         <div class="form-grid-2">
           <div class="form-group">
             <label for="gpuHourly">Hourly Rate ($/hr)</label>
-            <input id="gpuHourly" type="number" value="0.74" min="0" step="0.01">
+            <input id="gpuHourly" type="number" value="0.69" min="0" step="0.01">
           </div>
           <div class="form-group">
             <label for="gpuInstances">Instance Count</label>
@@ -921,15 +929,19 @@
 
   // Presets mapping
   const geminiPresets = {
-    flash: { in: 0.075, out: 0.30 },
-    flash2: { in: 0.10, out: 0.40 },
-    pro: { in: 1.25, out: 5.00 }
+    flashlite25: { in: 0.10, out: 0.40 },
+    flash25: { in: 0.30, out: 2.50 },
+    pro25: { in: 1.25, out: 10.00 },
+    flashlite31: { in: 0.25, out: 1.50 },
+    pro31: { in: 2.00, out: 12.00 },
+    flash38: { in: 0.75, out: 3.75 }
   };
 
   const claudePresets = {
-    sonnet: { in: 3.00, out: 15.00 },
-    haiku: { in: 0.80, out: 4.00 },
-    opus: { in: 15.00, out: 75.00 }
+    haiku45: { in: 1.00, out: 5.00 },
+    sonnet5: { in: 2.00, out: 10.00 },
+    opus5: { in: 5.00, out: 25.00 },
+    fable51: { in: 10.00, out: 50.00 }
   };
 
   const bedrockPresets = {
@@ -940,11 +952,11 @@
   };
 
   const gpuPresets = {
-    runpod4090: { rate: 0.74, instances: 1, hours: 720, overhead: 10 },
+    runpod4090: { rate: 0.69, instances: 1, hours: 720, overhead: 10 },
     g5xlarge: { rate: 1.01, instances: 1, hours: 720, overhead: 10 },
     g52xlarge: { rate: 1.21, instances: 1, hours: 720, overhead: 10 },
-    g512xlarge: { rate: 5.67, instances: 1, hours: 720, overhead: 10 },
-    g6e2xlarge: { rate: 1.85, instances: 1, hours: 720, overhead: 10 }
+    g512xlarge: { rate: 5.73, instances: 1, hours: 720, overhead: 10 },
+    g6e2xlarge: { rate: 2.24, instances: 1, hours: 720, overhead: 10 }
   };
 
   const workloadPresets = {
