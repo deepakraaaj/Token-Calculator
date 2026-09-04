@@ -728,8 +728,12 @@
             <option value="g52xlarge">AWS EC2 g5.2xlarge (1x A10G 24GB) ($1.21/hr)</option>
             <option value="g512xlarge">AWS EC2 g5.12xlarge (4x A10G 96GB) ($5.73/hr)</option>
             <option value="g6e2xlarge">AWS EC2 g6e.2xlarge (1x L40S 48GB) ($2.24/hr)</option>
+            <option value="vast4090ondemand">Vast.ai 1x RTX 4090, on-demand ($0.33/hr) ⚡ marketplace</option>
+            <option value="vast4090spot">Vast.ai 1x RTX 4090, interruptible ($0.12/hr) ⚡ spot, can be preempted</option>
+            <option value="vastA100">Vast.ai 1x A100 80GB, on-demand ($0.65/hr) ⚡ marketplace</option>
+            <option value="tensordockA100">TensorDock 1x A100 80GB, on-demand ($1.42/hr) ⚡ marketplace</option>
           </select>
-          <div class="info-hint" style="margin-top:4px; color:#f59e0b;">⚠ GPU rates change often — spot-checked Sep 2026, verify at runpod.io / aws.amazon.com/ec2/pricing before relying on this.</div>
+          <div class="info-hint" style="margin-top:4px; color:#f59e0b;">⚠ GPU rates change often — spot-checked Sep 2026, verify at runpod.io / aws.amazon.com/ec2/pricing before relying on this. ⚡ Marketplace options (Vast.ai, TensorDock) are peer-to-peer — price fluctuates live, storage/bandwidth billed separately, and "interruptible" instances can be preempted anytime, so they're not directly comparable to 24/7-guaranteed cloud instances.</div>
         </div>
 
         <div class="form-grid-2">
@@ -972,7 +976,11 @@
     g5xlarge: { rate: 1.01, instances: 1, hours: 720, overhead: 10 },
     g52xlarge: { rate: 1.21, instances: 1, hours: 720, overhead: 10 },
     g512xlarge: { rate: 5.73, instances: 1, hours: 720, overhead: 10 },
-    g6e2xlarge: { rate: 2.24, instances: 1, hours: 720, overhead: 10 }
+    g6e2xlarge: { rate: 2.24, instances: 1, hours: 720, overhead: 10 },
+    vast4090ondemand: { rate: 0.33, instances: 1, hours: 720, overhead: 20 },
+    vast4090spot: { rate: 0.12, instances: 1, hours: 720, overhead: 20 },
+    vastA100: { rate: 0.65, instances: 1, hours: 720, overhead: 20 },
+    tensordockA100: { rate: 1.42, instances: 1, hours: 720, overhead: 20 }
   };
 
   const workloadPresets = {
