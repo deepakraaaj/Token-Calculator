@@ -553,15 +553,19 @@
       <p>Estimate token throughput and compute costs across Gemini, Claude, AWS Bedrock, and Self-Hosted GPUs.</p>
     </div>
     <div class="header-actions">
+      <button class="btn" id="refreshPricingBtn" title="Auto-updates AWS Bedrock &amp; RunPod from live sources; flags Gemini/Claude/marketplace GPU rows for manual check">
+        🔄 Refresh Live Pricing
+      </button>
       <button class="btn" id="copySummaryBtn" title="Copy cost summary to clipboard">
         📋 Copy Summary
       </button>
     </div>
   </header>
 
-  <div style="text-align:right; font-size:11px; color:var(--text-sub); margin-top:-16px; margin-bottom:16px;">
-    Pricing data last verified: Sep 4, 2026
+  <div style="text-align:right; font-size:11px; color:var(--text-sub); margin-top:-16px; margin-bottom:4px;" id="pricingVerifiedLine">
+    Pricing data last verified: Sep 9, 2026
   </div>
+  <div id="refreshStatus" style="text-align:right; font-size:11px; margin-bottom:16px;"></div>
 
   <!-- Workload Presets Bar -->
   <div class="presets-bar">
@@ -648,7 +652,7 @@
               <input id="geminiOut" type="number" value="0.40" min="0" step="0.001">
             </div>
           </div>
-          <div class="info-hint" style="margin-top:4px;">Verified from ai.google.dev/gemini-api/docs/pricing, Sep 2026.</div>
+          <div class="info-hint" style="margin-top:4px;">Verified from ai.google.dev/gemini-api/docs/pricing, Sep 9, 2026.</div>
         </div>
 
         <!-- Anthropic Claude Direct -->
@@ -673,7 +677,7 @@
               <input id="claudeOut" type="number" value="5.00" min="0" step="0.01">
             </div>
           </div>
-          <div class="info-hint" style="margin-top:4px;">Verified from claude.com/pricing, Sep 2026.</div>
+          <div class="info-hint" style="margin-top:4px;">Verified from claude.com/pricing, Sep 9, 2026.</div>
         </div>
 
         <!-- Amazon Bedrock -->
@@ -686,14 +690,13 @@
               <option value="bedrock-novalite">Amazon Nova Lite ($0.06 / $0.24)</option>
               <option value="bedrock-novapro">Amazon Nova Pro ($0.80 / $3.20)</option>
               <option value="bedrock-novapremier">Amazon Nova Premier ($2.50 / $12.50)</option>
-              <option value="bedrock-titan">Amazon Titan Text Express ($0.20 / $0.60)</option>
               <option value="bedrock-llama33">Llama 3.3 70B on Bedrock ($0.72 / $0.72)</option>
               <option value="bedrock-llama4scout">Llama 4 Scout 17B on Bedrock ($0.17 / $0.66)</option>
               <option value="bedrock-llama4maverick">Llama 4 Maverick 17B on Bedrock ($0.24 / $0.97)</option>
               <option value="bedrock-mistrallarge">Mistral Large 3 675B ($0.50 / $1.50)</option>
-              <option value="bedrock-deepseek">DeepSeek-R1 on Bedrock ($1.35 / $5.40)</option>
-              <option value="bedrock-sonnet">Claude 3.5 Sonnet on Bedrock ($3.00 / $15.00) ⚠ unverified</option>
-              <option value="bedrock-haiku">Claude 3 Haiku on Bedrock ($0.25 / $1.25) ⚠ unverified</option>
+              <option value="bedrock-deepseek">DeepSeek V3.2 on Bedrock ($0.62 / $1.85)</option>
+              <option value="bedrock-sonnet">Claude 3 Sonnet on Bedrock ($3.00 / $15.00) ⚠ output unverified</option>
+              <option value="bedrock-haiku">Claude 3 Haiku on Bedrock ($0.25 / $1.25) ⚠ output unverified</option>
             </select>
           </label>
           <div class="form-grid-2">
@@ -706,7 +709,7 @@
               <input id="bedrockOut" type="number" value="0.14" min="0" step="0.001">
             </div>
           </div>
-          <div class="info-hint" style="margin-top:4px;">Nova, Titan, Llama, Mistral &amp; DeepSeek confirmed against AWS's own Price List API (pricing.us-east-1.amazonaws.com), Sep 2026, us-east-1. Claude-on-Bedrock rows are <strong style="color:#f59e0b;">⚠ unverified</strong> — current-gen Claude output pricing wasn't present in that feed; check aws.amazon.com/bedrock/pricing directly.</div>
+          <div class="info-hint" style="margin-top:4px;">Nova, Llama &amp; Mistral confirmed against AWS's own Price List API (pricing.us-east-1.amazonaws.com), Sep 9, 2026, us-east-1. DeepSeek updated to the current V3.2 SKU — the old DeepSeek-R1 SKU no longer appears in the feed (Titan Text Express dropped for the same reason). Claude Sonnet input confirmed at $3.00; output pricing wasn't present in the feed for either Claude row — <strong style="color:#f59e0b;">⚠ output unverified</strong>, check aws.amazon.com/bedrock/pricing directly. Also note current-gen Claude (Sonnet 5, Opus 5, Haiku 4.5) doesn't appear in Bedrock's feed yet — Claude 3-era models are what's actually listed.</div>
         </div>
       </section>
 
@@ -721,23 +724,23 @@
           <label for="gpuPreset">GPU Hardware Profile</label>
           <select id="gpuPreset">
             <option value="custom">Custom Server</option>
-            <option value="runpod4090" selected>RunPod 1x RTX 4090 24GB, Secure Cloud ($0.69/hr)</option>
+            <option value="runpod4090" selected>RunPod 1x RTX 4090 24GB, Secure Cloud ($0.74/hr)</option>
             <option value="g5xlarge">AWS EC2 g5.xlarge (1x A10G 24GB) ($1.01/hr)</option>
             <option value="g52xlarge">AWS EC2 g5.2xlarge (1x A10G 24GB) ($1.21/hr)</option>
-            <option value="g512xlarge">AWS EC2 g5.12xlarge (4x A10G 96GB) ($5.73/hr)</option>
+            <option value="g512xlarge">AWS EC2 g5.12xlarge (4x A10G 96GB) ($5.67/hr)</option>
             <option value="g6e2xlarge">AWS EC2 g6e.2xlarge (1x L40S 48GB) ($2.24/hr)</option>
-            <option value="vast4090ondemand">Vast.ai 1x RTX 4090, on-demand ($0.33/hr) ⚡ marketplace</option>
-            <option value="vast4090spot">Vast.ai 1x RTX 4090, interruptible ($0.12/hr) ⚡ spot, can be preempted</option>
-            <option value="vastA100">Vast.ai 1x A100 80GB, on-demand ($0.65/hr) ⚡ marketplace</option>
+            <option value="vast4090ondemand">Vast.ai 1x RTX 4090, on-demand (~$0.23/hr) ⚡ marketplace</option>
+            <option value="vast4090spot">Vast.ai 1x RTX 4090, interruptible (~$0.09/hr) ⚡ spot, can be preempted</option>
+            <option value="vastA100">Vast.ai 1x A100 80GB, on-demand (~$0.70/hr) ⚡ marketplace</option>
             <option value="tensordockA100">TensorDock 1x A100 80GB, on-demand ($1.42/hr) ⚡ marketplace</option>
           </select>
-          <div class="info-hint" style="margin-top:4px; color:#f59e0b;">⚠ GPU rates change often — spot-checked Sep 2026, verify at runpod.io / aws.amazon.com/ec2/pricing before relying on this. ⚡ Marketplace options (Vast.ai, TensorDock) are peer-to-peer — price fluctuates live, storage/bandwidth billed separately, and "interruptible" instances can be preempted anytime, so they're not directly comparable to 24/7-guaranteed cloud instances.</div>
+          <div class="info-hint" style="margin-top:4px; color:#f59e0b;">⚠ GPU rates change often — spot-checked Sep 9, 2026 (RunPod, AWS EC2 confirmed directly; Vast.ai figures are marketplace medians, not fixed rates), verify at runpod.io / vast.ai / aws.amazon.com/ec2/pricing before relying on this. ⚡ Marketplace options (Vast.ai, TensorDock) are peer-to-peer — price fluctuates live, storage/bandwidth billed separately, and "interruptible" instances can be preempted anytime, so they're not directly comparable to 24/7-guaranteed cloud instances.</div>
         </div>
 
         <div class="form-grid-2">
           <div class="form-group">
             <label for="gpuHourly">Hourly Rate ($/hr)</label>
-            <input id="gpuHourly" type="number" value="0.69" min="0" step="0.01">
+            <input id="gpuHourly" type="number" value="0.74" min="0" step="0.01">
           </div>
           <div class="form-group">
             <label for="gpuInstances">Instance Count</label>
@@ -959,25 +962,24 @@
     "bedrock-novalite": { in: 0.06, out: 0.24 },
     "bedrock-novapro": { in: 0.80, out: 3.20 },
     "bedrock-novapremier": { in: 2.50, out: 12.50 },
-    "bedrock-titan": { in: 0.20, out: 0.60 },
     "bedrock-llama33": { in: 0.72, out: 0.72 },
     "bedrock-llama4scout": { in: 0.17, out: 0.66 },
     "bedrock-llama4maverick": { in: 0.24, out: 0.97 },
     "bedrock-mistrallarge": { in: 0.50, out: 1.50 },
-    "bedrock-deepseek": { in: 1.35, out: 5.40 },
+    "bedrock-deepseek": { in: 0.62, out: 1.85 },
     "bedrock-sonnet": { in: 3.00, out: 15.00 },
     "bedrock-haiku": { in: 0.25, out: 1.25 }
   };
 
   const gpuPresets = {
-    runpod4090: { rate: 0.69, instances: 1, hours: 720, overhead: 10 },
+    runpod4090: { rate: 0.74, instances: 1, hours: 720, overhead: 10 },
     g5xlarge: { rate: 1.01, instances: 1, hours: 720, overhead: 10 },
     g52xlarge: { rate: 1.21, instances: 1, hours: 720, overhead: 10 },
-    g512xlarge: { rate: 5.73, instances: 1, hours: 720, overhead: 10 },
+    g512xlarge: { rate: 5.67, instances: 1, hours: 720, overhead: 10 },
     g6e2xlarge: { rate: 2.24, instances: 1, hours: 720, overhead: 10 },
-    vast4090ondemand: { rate: 0.33, instances: 1, hours: 720, overhead: 20 },
-    vast4090spot: { rate: 0.12, instances: 1, hours: 720, overhead: 20 },
-    vastA100: { rate: 0.65, instances: 1, hours: 720, overhead: 20 },
+    vast4090ondemand: { rate: 0.23, instances: 1, hours: 720, overhead: 20 },
+    vast4090spot: { rate: 0.09, instances: 1, hours: 720, overhead: 20 },
+    vastA100: { rate: 0.70, instances: 1, hours: 720, overhead: 20 },
     tensordockA100: { rate: 1.42, instances: 1, hours: 720, overhead: 20 }
   };
 
@@ -1197,6 +1199,106 @@ Generated via NL2SQL Token Calculator: https://nl2sql-token-calculator.vercel.ap
       toast.classList.add("show");
       setTimeout(() => toast.classList.remove("show"), 2200);
     });
+  });
+
+  // Refresh Live Pricing
+  const refreshBtn = document.getElementById("refreshPricingBtn");
+  const refreshStatus = document.getElementById("refreshStatus");
+  const pricingVerifiedLine = document.getElementById("pricingVerifiedLine");
+
+  function updateOptionPrice(optionEl, inVal, outVal) {
+    // Replaces the first "$X / $Y" or "$X.XX" pair found in an <option>'s
+    // text with the freshly fetched rates, leaving surrounding label text
+    // (model name, warnings like "⚠ marketplace") untouched.
+    const fmt = (n) => (n < 1 ? n.toFixed(3).replace(/0+$/, "").replace(/\.$/, "") : n.toFixed(2));
+    optionEl.textContent = optionEl.textContent.replace(
+      /\$[\d.]+\s*\/\s*\$[\d.]+/,
+      `$${fmt(inVal)} / $${fmt(outVal)}`
+    );
+  }
+
+  function applyBedrockRefresh(bedrock, activeModels) {
+    let changed = 0;
+    for (const [presetKey, rates] of Object.entries(bedrock)) {
+      if (!bedrockPresets[presetKey]) continue;
+      bedrockPresets[presetKey].in = rates.in;
+      bedrockPresets[presetKey].out = rates.out;
+      const optionEl = document.querySelector(`#bedrockPreset option[value="${presetKey}"]`);
+      if (optionEl) updateOptionPrice(optionEl, rates.in, rates.out);
+      changed++;
+    }
+    // If the currently-selected Bedrock preset was refreshed, push into inputs
+    const sel = document.getElementById("bedrockPreset").value;
+    if (bedrock[sel]) {
+      setVal("bedrockIn", bedrock[sel].in);
+      setVal("bedrockOut", bedrock[sel].out);
+    }
+    return changed;
+  }
+
+  function applyGpuRefresh(gpu) {
+    let changed = 0;
+    for (const [presetKey, rates] of Object.entries(gpu)) {
+      if (!gpuPresets[presetKey]) continue;
+      gpuPresets[presetKey].rate = rates.rate;
+      const optionEl = document.querySelector(`#gpuPreset option[value="${presetKey}"]`);
+      if (optionEl) {
+        optionEl.textContent = optionEl.textContent.replace(
+          /\$[\d.]+\/hr/,
+          `$${rates.rate.toFixed(2)}/hr`
+        );
+      }
+      changed++;
+    }
+    const sel = document.getElementById("gpuPreset").value;
+    if (gpu[sel]) setVal("gpuHourly", gpu[sel].rate);
+    return changed;
+  }
+
+  refreshBtn.addEventListener("click", async () => {
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = "🔄 Refreshing…";
+    refreshStatus.textContent = "";
+    refreshStatus.style.color = "var(--text-sub)";
+
+    try {
+      const res = await fetch("/api/refresh-pricing", { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      let changedCount = 0;
+      changedCount += applyBedrockRefresh(data.bedrock || {}, data.bedrockActiveModels || []);
+      changedCount += applyGpuRefresh(data.gpu || {});
+      // Gemini/Claude are best-effort HTML parses (no stable public API) —
+      // surfaced as warnings/manual-check only, never auto-applied to avoid
+      // writing a wrong number from a misparsed page.
+
+      recalc();
+
+      const today = new Date(data.fetchedAt).toLocaleDateString("en-US", {
+        month: "short", day: "numeric", year: "numeric"
+      });
+      pricingVerifiedLine.textContent = `Pricing data last verified: ${today} (auto-refreshed: AWS Bedrock, RunPod)`;
+
+      const warnings = data.warnings || [];
+      if (warnings.length) {
+        refreshStatus.style.color = "#f59e0b";
+        refreshStatus.innerHTML = `⚠ Updated ${changedCount} rate(s). ${warnings.length} item(s) need manual check: ` +
+          warnings.map(w => `<div style="margin-top:2px;">• ${w}</div>`).join("");
+      } else {
+        refreshStatus.style.color = "#22c55e";
+        refreshStatus.textContent = `✓ Updated ${changedCount} rate(s) from live sources.`;
+      }
+      if (data.note) {
+        refreshStatus.innerHTML += `<div style="margin-top:4px; color:var(--text-sub);">${data.note}</div>`;
+      }
+    } catch (err) {
+      refreshStatus.style.color = "#ef4444";
+      refreshStatus.textContent = `✗ Refresh failed: ${err.message}. Existing pricing left unchanged.`;
+    } finally {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = "🔄 Refresh Live Pricing";
+    }
   });
 
   // Initial calculation
